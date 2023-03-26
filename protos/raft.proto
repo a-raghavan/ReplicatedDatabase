@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.raft";
+option java_outer_classname = "RaftProto";
+option objc_class_prefix = "HLW";
+
+package raft;
+
+service Raft {
+
+  rpc AppendEntries (AppendEntriesRequest) returns (AppendEntriesReply) {}
+}
+
+message AppendEntriesRequest {
+    
+}
+
+message AppendEntriesReply {
+
+}

@@ -9,12 +9,15 @@ import leveldb
 import raft
 from time import sleep
 
+otherReplicas = []
+
 class Database(database_pb2_grpc.DatabaseServicer):
     def __init__(self):
         self.db = leveldb.LevelDB('./db')
-        self.raftinstance = raft.RaftMain()
+        self.raftinstance = raft.RaftMain(otherReplicas, self.db)
 
     def Get(self, request, context):
+        print("Get request received at server with key = %s" % (request.key))
         try:
             val = self.db.Get(bytearray(request.key, 'utf-8'))
         except Exception as e:
@@ -27,7 +30,6 @@ class Database(database_pb2_grpc.DatabaseServicer):
         #return database_pb2.PutReply(errormsg="")
 
         retindex = self.raftinstance.addCommandToReplicatedLog(raft.ReplicatedLogEntry(request.key, request.value))
-
         # polling
         # while self.raftinstance.commitIndex < retIndex:
         #   pass
@@ -46,7 +48,24 @@ def serve():
     print("Server started, listening on " + port)
     server.wait_for_termination()
 
+def getMyIPAddress():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    return s.getsockname()[0]
 
 if __name__ == '__main__':
+    
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('-n', '--nodes', nargs='+', help='node-ports of all participating nodes (space separated). e.g. -n 10.0.0.1:5001 10.0.0.1:5002 10.0.0.1:5003', required=True)
+    args = parser.parse_args()
+    
+    myIP = getMyIPAddress()
+
+    for nodeport in args.nodes:
+        if nodeport.split(":")[0] != myIP:
+            otherReplicas.append(nodeport)
+    
     logging.basicConfig()
     serve()

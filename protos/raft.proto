@@ -11,7 +11,7 @@ service Raft {
   rpc AppendEntries (AppendEntriesRequest) returns (AppendEntriesReply) {}
 }
 
-message ReplicatedLogEntry {
+message LogEntry {
   string command = 1;
   string key = 2;
   string value = 3;
@@ -20,9 +20,10 @@ message ReplicatedLogEntry {
 
 message AppendEntriesRequest {
   uint64 prevlogindex = 1;
-  repeated ReplicatedLogEntry entries = 2;
+  repeated LogEntry entries = 2;
   uint64 commitindex = 3;
-  uint64 term = 4;
+  uint64 currentterm = 4;
+  uint64 previousterm = 5;
 }
 
 message AppendEntriesReply {

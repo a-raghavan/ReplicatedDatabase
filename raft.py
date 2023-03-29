@@ -50,6 +50,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
             else:
                 return raft_pb2.AppendEntriesResponse(success=False, term=myCurrTerm)
             
+            
         with self.raftmaininstance.logLock:
             myCommitIdx = self.raftmaininstance.replicatedlog.commitIdx
             if request.commitIdx > myCommitIdx:

@@ -49,6 +49,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                 self.raftmaininstance.replicatedlog.log = self.raftmaininstance.replicatedlog.log[:request.prevlogindex+1]
             else:
                 return raft_pb2.AppendEntriesResponse(success=False, term=myCurrTerm)
+      
             
         with self.raftmaininstance.logLock:
             myCommitIdx = self.raftmaininstance.replicatedlog.commitIdx

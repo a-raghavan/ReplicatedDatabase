@@ -5,7 +5,21 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class AppendEntriesReply(_message.Message):
+class AppendEntriesRequest(_message.Message):
+    __slots__ = ["commitindex", "currentterm", "entries", "previousterm", "prevlogindex"]
+    COMMITINDEX_FIELD_NUMBER: _ClassVar[int]
+    CURRENTTERM_FIELD_NUMBER: _ClassVar[int]
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    PREVIOUSTERM_FIELD_NUMBER: _ClassVar[int]
+    PREVLOGINDEX_FIELD_NUMBER: _ClassVar[int]
+    commitindex: int
+    currentterm: int
+    entries: _containers.RepeatedCompositeFieldContainer[LogEntry]
+    previousterm: int
+    prevlogindex: int
+    def __init__(self, prevlogindex: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[LogEntry, _Mapping]]] = ..., commitindex: _Optional[int] = ..., currentterm: _Optional[int] = ..., previousterm: _Optional[int] = ...) -> None: ...
+
+class AppendEntriesResponse(_message.Message):
     __slots__ = ["success", "term"]
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     TERM_FIELD_NUMBER: _ClassVar[int]
@@ -13,19 +27,7 @@ class AppendEntriesReply(_message.Message):
     term: int
     def __init__(self, term: _Optional[int] = ..., success: bool = ...) -> None: ...
 
-class AppendEntriesRequest(_message.Message):
-    __slots__ = ["commitindex", "entries", "prevlogindex", "term"]
-    COMMITINDEX_FIELD_NUMBER: _ClassVar[int]
-    ENTRIES_FIELD_NUMBER: _ClassVar[int]
-    PREVLOGINDEX_FIELD_NUMBER: _ClassVar[int]
-    TERM_FIELD_NUMBER: _ClassVar[int]
-    commitindex: int
-    entries: _containers.RepeatedCompositeFieldContainer[ReplicatedLogEntry]
-    prevlogindex: int
-    term: int
-    def __init__(self, prevlogindex: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[ReplicatedLogEntry, _Mapping]]] = ..., commitindex: _Optional[int] = ..., term: _Optional[int] = ...) -> None: ...
-
-class ReplicatedLogEntry(_message.Message):
+class LogEntry(_message.Message):
     __slots__ = ["command", "key", "term", "value"]
     COMMAND_FIELD_NUMBER: _ClassVar[int]
     KEY_FIELD_NUMBER: _ClassVar[int]

@@ -4,6 +4,7 @@ import raft_pb2_grpc
 import raft_pb2
 
 import threading
+import math
 
 class ReplicatedLogEntry:
     def __init__(self, key, value):
@@ -15,7 +16,7 @@ class ReplicatedLogEntry:
 class ReplicatedLog:
     def __init__(self):
         self.log = []                       # list of ReplicatedLogEntry
-        self.commitIndex = 0
+        self.commitIndex = -1
         self.processedIndex = -1
     
     def append(self, entry):
@@ -48,6 +49,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                 self.raftmaininstance.replicatedlog.log = self.raftmaininstance.replicatedlog.log[:request.prevlogindex+1]
             else:
                 return raft_pb2.AppendEntriesResponse(success=False, term=myCurrTerm)
+      
             
         with self.raftmaininstance.logLock:
             myCommitIdx = self.raftmaininstance.replicatedlog.commitIdx
@@ -68,14 +70,14 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
         return raft_pb2.AppendEntriesResponse(success=True, term=myCurrTerm)
 
     def createGRPCServerThread(self):
-        _thread = threading.Thread(target=__grpcServerThread)
+        _thread = threading.Thread(target=self.__grpcServerThread)
         _thread.start()
-        _thread.join()
+        #_thread.join()
 
     def __grpcServerThread(self):
         port = '50052'
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        raft_pb2_grpc.add_RaftServicer_to_server(Raft(), server)
+        raft_pb2_grpc.add_RaftServicer_to_server(raft_pb2_grpc.Raft(), server)
         server.add_insecure_port('[::]:' + port)
         server.start()
         print("Raft Server started, listening on " + port)
@@ -89,9 +91,9 @@ class RafrGRPCClient():
         self.RaftGRPCClientLock = threading.Lock()
 
     def createGRPCClientThread(self):
-        _thread = threading.Thread(target=__grpcClientThread)
+        _thread = threading.Thread(target=self.__grpcClientThread)
         _thread.start()
-        _thread.join()
+        #_thread.join()
     
     def __grpcClientThread(self):
         while (True):
@@ -109,17 +111,21 @@ class RafrGRPCClient():
 
                 # for i in len(range(majority)):
                 #     t.join()
-                for follower in self.othernodes:
-                    futurelist = [self.threadpoolexecutor.submit(self.__appendEntriesThread, followerNodePort=nodePort) for nodePort in self.othernodes]
+                for follower in self.raftmaininstance.othernodes:
+                    futurelist = [self.threadpoolexecutor.submit(self.__appendEntriesThread, followerNodePort=nodePort) for nodePort in self.raftmaininstance.othernodes]
                 
                 with self.raftmaininstance.logLock:
                     self.raftmaininstance.replicatedlog.processedIndex += 1
                 
                 # TODO check for numCompleteVar
-                for fidx in range(len(self.othernodes)/2):
+                print("Broadcast new entry to network")
+                print("Majority occurs when ::"+ str(math.ceil(len(self.raftmaininstance.othernodes)/2)) +" approve")
+                for fidx in range(math.ceil(len(self.raftmaininstance.othernodes)/2)):
                     out = futurelist[fidx].result() # always returns True?
+                    print("Got result:: "+ out)
                 
                 # commit
+                print("Commit new entry to StateMachine")
                 self.raftmaininstance.db.Put(bytearray(request.key, 'utf-8'), bytearray(request.value, 'utf-8'))
 
                 # replicated in majority, increment commit index
@@ -133,8 +139,8 @@ class RafrGRPCClient():
         # if success, return True
         # elif timeout : retry
         # elif failure : decrement self.nextIndices[followerNodePort] and retry
-        response = AppendEntriesResponse(1, False)
-        while !response.success:
+        response = raft_pb2.AppendEntriesResponse(term=1, success=False)
+        while not response.success:
             with self.RaftGRPCClientLock:
                 myFollowerNextIdx = self.nextIndices[followerNodePort]
                 entry = self.raftmaininstance.replicatedlog.log[myFollowerNextIdx]
@@ -146,8 +152,11 @@ class RafrGRPCClient():
                 lgent = raft_pb2.LogEntry(command=entry.command, key=entry.key, value=entry.value, term=entry.term)
                 try:
                     response = stub.AppendEntries(raft_pb2.AppendEntriesRequest(prevlogindex=myFollowerNextIdx-1, previousterm=prevTerm, 
-                                [lgent], commitindex=cmtIdx, currentterm=1))
-                    if !response.success:
+                                entries= [lgent], commitindex=cmtIdx, currentterm=1))
+                    print("Success Status::"+ response.success)
+                    print("Response term::"+ response.term)
+
+                    if not response.success:
                         with self.RaftGRPCClientLock:
                             self.nextIndices[followerNodePort] -= 1
 
@@ -156,16 +165,19 @@ class RafrGRPCClient():
 
 class RaftMain():
     def __init__(self, othernodes, leveldbinstance):
+        # intializing data members
         self.replicatedlog = ReplicatedLog()
-        self.grpcServer = RaftGRPCServer(self)
-        self.grpcServer.createGRPCServerThread()
-        self.grpcClient = RafrGRPCClient(self)
-        self.grpcClient.createGRPCClientThread()
-        self.logLock = threading.Lock()
         from copy import deepcopy
         self.othernodes = deepcopy(othernodes)
         self.currentTerm = 1
         self.db = leveldbinstance
+        self.logLock = threading.Lock()
+        # Creating client and Server threads
+        self.grpcServer = RaftGRPCServer(self)
+        self.grpcServer.createGRPCServerThread()
+        self.grpcClient = RafrGRPCClient(self)
+        self.grpcClient.createGRPCClientThread()
+        
         # TODO create heartbeat thread if state = leader
     
     def addCommandToReplicatedLog(self, entry):

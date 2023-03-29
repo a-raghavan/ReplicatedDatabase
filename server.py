@@ -29,13 +29,16 @@ class Database(database_pb2_grpc.DatabaseServicer):
         #self.db.Put(bytearray(request.key, 'utf-8'), bytearray(request.value, 'utf-8'))
         #return database_pb2.PutReply(errormsg="")
 
-        retindex = self.raftinstance.addCommandToReplicatedLog(raft.ReplicatedLogEntry(request.key, request.value))
+        retIndex = self.raftinstance.addCommandToReplicatedLog(raft.ReplicatedLogEntry(request.key, request.value))
         # polling
         # while self.raftinstance.commitIndex < retIndex:
         #   pass
         # Get result from raft module, return as GRPC response back to client
+        print("returnIndex for current request :: "+ str(retIndex))
+        print("raftInstanceCoomitIndex:: "+ str(self.raftinstance.getCommitIndex()))
         while self.raftinstance.getCommitIndex() < retIndex:
             sleep(1)
+        print("Done with PUT Command Successfully")
         return database_pb2.PutReply(errormsg="")
         
 
@@ -62,7 +65,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     myIP = getMyIPAddress()
-
     for nodeport in args.nodes:
         if nodeport.split(":")[0] != myIP:
             otherReplicas.append(nodeport)

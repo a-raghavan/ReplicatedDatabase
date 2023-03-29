@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nraft.proto\x12\x04raft\"O\n\x12ReplicatedLogEntry\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0b\n\x03key\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t\x12\x0c\n\x04term\x18\x04 \x01(\x04\"z\n\x14\x41ppendEntriesRequest\x12\x14\n\x0cprevlogindex\x18\x01 \x01(\x04\x12)\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x18.raft.ReplicatedLogEntry\x12\x13\n\x0b\x63ommitindex\x18\x03 \x01(\x04\x12\x0c\n\x04term\x18\x04 \x01(\x04\"3\n\x12\x41ppendEntriesReply\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x0f\n\x07success\x18\x02 \x01(\x08\x32O\n\x04Raft\x12G\n\rAppendEntries\x12\x1a.raft.AppendEntriesRequest\x1a\x18.raft.AppendEntriesReply\"\x00\x42*\n\x15io.grpc.examples.raftB\tRaftProtoP\x01\xa2\x02\x03HLWb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nraft.proto\x12\x04raft\"E\n\x08LogEntry\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0b\n\x03key\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t\x12\x0c\n\x04term\x18\x04 \x01(\x04\"\x8d\x01\n\x14\x41ppendEntriesRequest\x12\x14\n\x0cprevlogindex\x18\x01 \x01(\x04\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.raft.LogEntry\x12\x13\n\x0b\x63ommitindex\x18\x03 \x01(\x04\x12\x13\n\x0b\x63urrentterm\x18\x04 \x01(\x04\x12\x14\n\x0cpreviousterm\x18\x05 \x01(\x04\"6\n\x15\x41ppendEntriesResponse\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x0f\n\x07success\x18\x02 \x01(\x08\x32R\n\x04Raft\x12J\n\rAppendEntries\x12\x1a.raft.AppendEntriesRequest\x1a\x1b.raft.AppendEntriesResponse\"\x00\x42*\n\x15io.grpc.examples.raftB\tRaftProtoP\x01\xa2\x02\x03HLWb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'raft_pb2', globals())
@@ -21,12 +21,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'\n\025io.grpc.examples.raftB\tRaftProtoP\001\242\002\003HLW'
-  _REPLICATEDLOGENTRY._serialized_start=20
-  _REPLICATEDLOGENTRY._serialized_end=99
-  _APPENDENTRIESREQUEST._serialized_start=101
-  _APPENDENTRIESREQUEST._serialized_end=223
-  _APPENDENTRIESREPLY._serialized_start=225
-  _APPENDENTRIESREPLY._serialized_end=276
-  _RAFT._serialized_start=278
-  _RAFT._serialized_end=357
+  _LOGENTRY._serialized_start=20
+  _LOGENTRY._serialized_end=89
+  _APPENDENTRIESREQUEST._serialized_start=92
+  _APPENDENTRIESREQUEST._serialized_end=233
+  _APPENDENTRIESRESPONSE._serialized_start=235
+  _APPENDENTRIESRESPONSE._serialized_end=289
+  _RAFT._serialized_start=291
+  _RAFT._serialized_end=373
 # @@protoc_insertion_point(module_scope)

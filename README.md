@@ -17,10 +17,11 @@ source venv/bin/activate
 ### Build protobuffs 
 ```sh
 python3 -m grpc_tools.protoc -I./protos --python_out=. --pyi_out=. --grpc_python_out=. ./protos/database.proto
+python3 -m grpc_tools.protoc -I ./protos --python_out=. --pyi_out=. --grpc_python_out=. ./protos/*
 ```
 ### Run server
 ```sh
-python3 server.py
+python3 server.py --nodes "IP address:port"
 ```
 ### Run client
 ```sh

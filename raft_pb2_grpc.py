@@ -17,7 +17,7 @@ class RaftStub(object):
         self.AppendEntries = channel.unary_unary(
                 '/raft.Raft/AppendEntries',
                 request_serializer=raft__pb2.AppendEntriesRequest.SerializeToString,
-                response_deserializer=raft__pb2.AppendEntriesReply.FromString,
+                response_deserializer=raft__pb2.AppendEntriesResponse.FromString,
                 )
 
 
@@ -36,7 +36,7 @@ def add_RaftServicer_to_server(servicer, server):
             'AppendEntries': grpc.unary_unary_rpc_method_handler(
                     servicer.AppendEntries,
                     request_deserializer=raft__pb2.AppendEntriesRequest.FromString,
-                    response_serializer=raft__pb2.AppendEntriesReply.SerializeToString,
+                    response_serializer=raft__pb2.AppendEntriesResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -61,6 +61,6 @@ class Raft(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/raft.Raft/AppendEntries',
             raft__pb2.AppendEntriesRequest.SerializeToString,
-            raft__pb2.AppendEntriesReply.FromString,
+            raft__pb2.AppendEntriesResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

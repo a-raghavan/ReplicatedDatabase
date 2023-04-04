@@ -5,6 +5,7 @@ import grpc
 import database_pb2
 import database_pb2_grpc
 import leveldb
+import shutil
 
 import raft
 from time import sleep
@@ -12,9 +13,12 @@ from time import sleep
 otherReplicas = []
 
 class Database(database_pb2_grpc.DatabaseServicer):
-    def __init__(self):
-        self.db = leveldb.LevelDB('./db')
-        self.raftinstance = raft.RaftMain(otherReplicas, self.db)
+    def __init__(self, raftPort):
+        # delete folder if exists - Remove after testing
+        path ='./{}_db'.format(raftPort)
+        shutil.rmtree(path, ignore_errors=True)
+        self.db = leveldb.LevelDB(path)
+        self.raftinstance = raft.RaftMain(otherReplicas, self.db, raftPort)
 
     def Get(self, request, context):
         print("Get request received at server with key = %s" % (request.key))
@@ -42,10 +46,10 @@ class Database(database_pb2_grpc.DatabaseServicer):
         return database_pb2.PutReply(errormsg="")
         
 
-def serve():
-    port = '50051'
+def serve(port,raftPort):
+    # port = '50051'
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    database_pb2_grpc.add_DatabaseServicer_to_server(Database(), server)
+    database_pb2_grpc.add_DatabaseServicer_to_server(Database(raftPort), server)
     server.add_insecure_port('[::]:' + port)
     server.start()
     print("Server started, listening on " + port)
@@ -58,16 +62,19 @@ def getMyIPAddress():
     return s.getsockname()[0]
 
 if __name__ == '__main__':
-    
+    print(grpc.__version__)
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument('-n', '--nodes', nargs='+', help='node-ports of all participating nodes (space separated). e.g. -n 10.0.0.1:5001 10.0.0.1:5002 10.0.0.1:5003', required=True)
+    parser.add_argument('-sp', '--serverport', help='Replicated server launch port', required=True)
+    parser.add_argument('-rp', '--raftport', help='Raft server launch port', required=True)
+    parser.add_argument('-n', '--nodes', nargs='*', help='node-ports of all participating nodes (space separated). e.g. -n 10.0.0.1:5001 10.0.0.1:5002 10.0.0.1:5003', required=True)
     args = parser.parse_args()
     
     myIP = getMyIPAddress()
     for nodeport in args.nodes:
-        if nodeport.split(":")[0] != myIP:
+        # if nodeport.split(":")[0] != myIP:
+        #     otherReplicas.append(nodeport)
+        if args.raftport != nodeport.split(":")[1]:
             otherReplicas.append(nodeport)
-    
     logging.basicConfig()
-    serve()
+    serve(args.serverport, args.raftport)

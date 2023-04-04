@@ -133,7 +133,9 @@ class Test1AppendEntries(unittest.TestCase):
 
     def test_simple_appentEntries_request(self):
         self.assertTrue(self.nodes[0].putData("akshay","awesome").errormsg =="")
-        self.assertTrue(self.nodes[0].getData("akshay") == "awesome")
+        val =self.nodes[0].getData("akshay").value 
+        print("val ::"+ val)
+        self.assertTrue(val == "awesome")
 
 if __name__ == '__main__':
     unittest.main(exit=False)

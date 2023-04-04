@@ -48,7 +48,7 @@ class Database(database_pb2_grpc.DatabaseServicer):
 
 def serve(port,raftPort):
     # port = '50051'
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     database_pb2_grpc.add_DatabaseServicer_to_server(Database(raftPort), server)
     server.add_insecure_port('[::]:' + port)
     server.start()

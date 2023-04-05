@@ -42,7 +42,8 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
         print("request.prevlogindex"+ str(request.prevlogindex))
         print("request.entries.key"+ str(request.entries[0].key))
         print("request.entries.value"+ str(request.entries[0].value))
-
+        with self.raftmaininstance.logLock:
+            print("replicated log len APpendEntries Raft server", len(self.raftmaininstance.replicatedlog.log))
 
         with self.raftmaininstance.logLock:
             myCurrTerm = self.raftmaininstance.currentTerm
@@ -52,7 +53,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
         
         with self.raftmaininstance.logLock:
             loglen = len(self.raftmaininstance.replicatedlog.log)
-            if request.prevlogindex < loglen:
+            if request.prevlogindex <= loglen-1:
                 self.raftmaininstance.replicatedlog.log = self.raftmaininstance.replicatedlog.log[:request.prevlogindex+1]
             else:
                 return raft_pb2.AppendEntriesResponse(success=False, term=myCurrTerm)
@@ -94,7 +95,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
 
     def __grpcServerThread(self):
         # port = '50052'
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         raft_pb2_grpc.add_RaftServicer_to_server(self, server)
         server.add_insecure_port('[::]:' + self.port)
         server.start()
@@ -104,7 +105,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
 class RafrGRPCClient():
     def __init__(self, raftmaininstance):
         self.raftmaininstance = raftmaininstance
-        self.threadpoolexecutor = futures.ThreadPoolExecutor(max_workers=2)
+        self.threadpoolexecutor = futures.ThreadPoolExecutor(max_workers=1)
         self.nextIndices = {k:0 for k in self.raftmaininstance.othernodes}  # move it to appropriate function when candidate becomes leader
         self.RaftGRPCClientLock = threading.Lock()
 
@@ -120,6 +121,7 @@ class RafrGRPCClient():
             #     replicate in other replicas
             # else:
             #     send heartbeat 
+            #print("after while true grpc client raft.py")
             with self.raftmaininstance.logLock:
                 pidx = self.raftmaininstance.replicatedlog.processedIndex
                 loglen = len(self.raftmaininstance.replicatedlog.log)
@@ -161,33 +163,37 @@ class RafrGRPCClient():
         # if success, return True
         # elif timeout : retry
         # elif failure : decrement self.nextIndices[followerNodePort] and retry
-        
+        print("__appendEntriesThread start")
         response = raft_pb2.AppendEntriesResponse(term=1, success=False)
         while not response.success: #need to change condition will fail if myFollowerNextIdx was 0 and it accepted and current idx  =10
-            with self.RaftGRPCClientLock:
+            with self.raftmaininstance.logLock:
                 myFollowerNextIdx = self.nextIndices[followerNodePort]
                 entry = self.raftmaininstance.replicatedlog.log[myFollowerNextIdx]
                 cmtIdx =  self.raftmaininstance.replicatedlog.commitIndex
-                prevTerm= self.raftmaininstance.replicatedlog.log[myFollowerNextIdx-1].term
-
+                prevTerm = self.raftmaininstance.replicatedlog.log[myFollowerNextIdx-1].term if myFollowerNextIdx != 0 else -1
+            print("__appendEntriesThread checkpoint 1")
             with grpc.insecure_channel(followerNodePort) as channel:
                 stub = raft_pb2_grpc.RaftStub(channel)
                 lgent = raft_pb2.LogEntry(command=entry.command, key=entry.key, value=entry.value, term=entry.term)
                 try:
+                    print("__appendEntriesThread checkpoint 2")
                     response = stub.AppendEntries(raft_pb2.AppendEntriesRequest(prevlogindex=myFollowerNextIdx-1, previousterm=prevTerm, 
-                                entries= [lgent], commitindex=cmtIdx, currentterm=1))
+                                entries= [lgent], commitindex=cmtIdx, currentterm=1), timeout=1)
+                    print("hoi")
                     print("Success Status::"+ str(response.success))
                     print("Response term::"+ str(response.term))
                     print("Follower nodeport", followerNodePort)
                     print("appendEntriesThreadID",id)
 
                     if not response.success:
-                        with self.RaftGRPCClientLock:
-                            self.nextIndices[followerNodePort] -= 1
+                        self.nextIndices[followerNodePort] -= 1
+                    else:
+                        self.nextIndices[followerNodePort] += 1
 
                 except Exception as e:
                     print(e)
                     continue
+        print("__appendEntriesThread checkpoint 3")
         return True  
 
 class RaftMain():

@@ -29,8 +29,8 @@ class test_timeout:
 def log(msg, level='INFO'):
     print('[%s]: %s' % (level, msg))
 
-server_ports = [30001, 30002, 30003]
-raft_server_ports = [50001, 50002, 50003]
+server_ports = [50001, 50002, 50003]
+raft_server_ports =  [30001, 30002, 30003]
 
 
 class ServerProcess:

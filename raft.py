@@ -5,6 +5,7 @@ import raft_pb2
 
 import threading
 import math
+import random
 
 class ReplicatedLogEntry:
     def __init__(self, key, value):
@@ -37,7 +38,12 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
         # if !(request.prevlogidx and request.prevlogterm match with our replicated log)
         #   return failure rpc response
         # else: append entry
-        
+
+        print("request.prevlogindex"+ str(request.prevlogindex))
+        print("request.entries.key"+ str(request.entries[0].key))
+        print("request.entries.value"+ str(request.entries[0].value))
+
+
         with self.raftmaininstance.logLock:
             myCurrTerm = self.raftmaininstance.currentTerm
 
@@ -54,16 +60,16 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
             
         with self.raftmaininstance.logLock:
             myCommitIdx = self.raftmaininstance.replicatedlog.commitIndex
-            if request.commitindex > myCommitIdx:
-                while myCommitIdx <= request.commitindex:
-                    print("request.commitindex:: " + str(request.commitindex))
-                    print("myCommitIdx:: " + str(myCommitIdx))
-                    print("length of replicated log::" + str(len(self.raftmaininstance.replicatedlog.log)))
-                    self.raftmaininstance.db.Put(
-                        bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].key, 'utf-8'), 
-                        bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].value, 'utf-8'))
-                    myCommitIdx += 1
-                    self.raftmaininstance.replicatedlog.commitIndex += 1
+            while myCommitIdx < request.commitindex:
+                print("request.commitindex:: " + str(request.commitindex))
+                print("myCommitIdx:: " + str(myCommitIdx))
+                print("length of replicated log::" + str(len(self.raftmaininstance.replicatedlog.log)))
+                print("raft main instance obj :", self.raftmaininstance)
+                self.raftmaininstance.db.Put(
+                    bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].key, 'utf-8'), 
+                    bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].value, 'utf-8'))
+                myCommitIdx += 1
+                self.raftmaininstance.replicatedlog.commitIndex += 1
 
         with self.raftmaininstance.logLock:
             #Need to check request.prevlogindex!=-1 condition is safe
@@ -75,23 +81,21 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                 print("key::"+ request.entries[0].key)
                 print("value::" + request.entries[0].value)
                 self.raftmaininstance.replicatedlog.processedIndex+=1
-                self.raftmaininstance.replicatedlog.log.append(ReplicatedLogEntry(request.entries[0].key, request.entries[0].value))
+                self.raftmaininstance.replicatedlog.append(ReplicatedLogEntry(request.entries[0].key, request.entries[0].value))
                 print("length of replicated log::" + str(len(self.raftmaininstance.replicatedlog.log)))
-                
-
-
+                print("raft main instance obj :", self.raftmaininstance)
         
         return raft_pb2.AppendEntriesResponse(success=True, term=myCurrTerm)
 
-    def createGRPCServerThread(self, raftmaininstance, raftPort):
-        _thread = threading.Thread(target= self.__grpcServerThread, args= [raftmaininstance, raftPort])
+    def createGRPCServerThread(self):
+        _thread = threading.Thread(target= self.__grpcServerThread)
         _thread.start()
         #_thread.join()
 
-    def __grpcServerThread(self, raftmaininstance,raftPort):
+    def __grpcServerThread(self):
         # port = '50052'
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
-        raft_pb2_grpc.add_RaftServicer_to_server(RaftGRPCServer(raftmaininstance,raftPort), server)
+        raft_pb2_grpc.add_RaftServicer_to_server(self, server)
         server.add_insecure_port('[::]:' + self.port)
         server.start()
         print("Raft Server started, listening on " + self.port)
@@ -100,16 +104,17 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
 class RafrGRPCClient():
     def __init__(self, raftmaininstance):
         self.raftmaininstance = raftmaininstance
-        self.threadpoolexecutor = futures.ThreadPoolExecutor(max_workers=10)
+        self.threadpoolexecutor = futures.ThreadPoolExecutor(max_workers=2)
         self.nextIndices = {k:0 for k in self.raftmaininstance.othernodes}  # move it to appropriate function when candidate becomes leader
         self.RaftGRPCClientLock = threading.Lock()
 
     def createGRPCClientThread(self):
-        _thread = threading.Thread(target=self.__grpcClientThread)
+        _thread = threading.Thread(target=self.__grpcClientThread, args=[random.randint(10000,20000)])
         _thread.start()
         #_thread.join()
     
-    def __grpcClientThread(self):
+    def __grpcClientThread(self, idx):
+        print("__grpcClientThread idx ::", idx)
         while (True):
             # if new command to replicate:
             #     replicate in other replicas
@@ -125,9 +130,11 @@ class RafrGRPCClient():
 
                 # for i in len(range(majority)):
                 #     t.join()
-                for follower in self.raftmaininstance.othernodes:
-                    futurelist = [self.threadpoolexecutor.submit(self.__appendEntriesThread, followerNodePort=nodePort) for nodePort in self.raftmaininstance.othernodes]
+                print("Got new append Entry")
+
+                futurelist = [self.threadpoolexecutor.submit(self.__appendEntriesThread, followerNodePort=nodePort, id=random.randint(0,10000)) for nodePort in self.raftmaininstance.othernodes]
                 
+                print("len of future list raft.py",len(futurelist))
                 with self.raftmaininstance.logLock:
                     self.raftmaininstance.replicatedlog.processedIndex += 1
                 
@@ -147,13 +154,14 @@ class RafrGRPCClient():
                     self.raftmaininstance.db.Put(bytearray(self.raftmaininstance.replicatedlog.log[cmtIdx].key, 'utf-8'), bytearray(self.raftmaininstance.replicatedlog.log[cmtIdx].value, 'utf-8'))
                     self.raftmaininstance.replicatedlog.commitIndex += 1
     
-    def __appendEntriesThread(self, followerNodePort):
+    def __appendEntriesThread(self, followerNodePort, id):
         # implement append entries RPC logic
         # get log command from followerPrevIdx
         # send appendEntriesRPC
         # if success, return True
         # elif timeout : retry
         # elif failure : decrement self.nextIndices[followerNodePort] and retry
+        
         response = raft_pb2.AppendEntriesResponse(term=1, success=False)
         while not response.success: #need to change condition will fail if myFollowerNextIdx was 0 and it accepted and current idx  =10
             with self.RaftGRPCClientLock:
@@ -170,6 +178,8 @@ class RafrGRPCClient():
                                 entries= [lgent], commitindex=cmtIdx, currentterm=1))
                     print("Success Status::"+ str(response.success))
                     print("Response term::"+ str(response.term))
+                    print("Follower nodeport", followerNodePort)
+                    print("appendEntriesThreadID",id)
 
                     if not response.success:
                         with self.RaftGRPCClientLock:
@@ -177,7 +187,8 @@ class RafrGRPCClient():
 
                 except Exception as e:
                     print(e)
-                    continue        
+                    continue
+        return True  
 
 class RaftMain():
     def __init__(self, othernodes, leveldbinstance, raftPort):
@@ -190,7 +201,7 @@ class RaftMain():
         self.logLock = threading.Lock()
         # Creating client and Server threads
         self.grpcServer = RaftGRPCServer(self,raftPort)
-        self.grpcServer.createGRPCServerThread(self,raftPort)
+        self.grpcServer.createGRPCServerThread()
         self.grpcClient = RafrGRPCClient(self)
         self.grpcClient.createGRPCClientThread()
         
@@ -199,10 +210,12 @@ class RaftMain():
     def addCommandToReplicatedLog(self, entry):
         # acquire lock for replicated log
         # return index where entry is appended
+        print("adding the request to replicated log")
         retval = 0
         with self.logLock:
             self.replicatedlog.append(entry)
             retval = len(self.replicatedlog.log)-1
+            print("length of replicated log:: " + str(len(self.replicatedlog.log)))
         return retval
     
     def getCommitIndex(self):

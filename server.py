@@ -32,7 +32,7 @@ class Database(database_pb2_grpc.DatabaseServicer):
         # RAFT HERE, put in db only upon commit
         #self.db.Put(bytearray(request.key, 'utf-8'), bytearray(request.value, 'utf-8'))
         #return database_pb2.PutReply(errormsg="")
-
+        print("Put request from client ::  key :"+ request.key +" val:"+ request.value)
         retIndex = self.raftinstance.addCommandToReplicatedLog(raft.ReplicatedLogEntry(request.key, request.value))
         # polling
         # while self.raftinstance.commitIndex < retIndex:
@@ -40,8 +40,9 @@ class Database(database_pb2_grpc.DatabaseServicer):
         # Get result from raft module, return as GRPC response back to client
         print("returnIndex for current request :: "+ str(retIndex))
         print("raftInstanceCoomitIndex:: "+ str(self.raftinstance.getCommitIndex()))
-        while self.raftinstance.getCommitIndex() < retIndex:
+        while self.raftinstance.getCommitIndex() <= retIndex:
             sleep(1)
+        print("replicated log len in server.py", len(self.raftinstance.replicatedlog.log))
         print("Done with PUT Command Successfully")
         return database_pb2.PutReply(errormsg="")
         

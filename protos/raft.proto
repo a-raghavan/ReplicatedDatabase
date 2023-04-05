@@ -19,11 +19,11 @@ message LogEntry {
 }
 
 message AppendEntriesRequest {
-  uint64 prevlogindex = 1;
+  int64 prevlogindex = 1;
   repeated LogEntry entries = 2;
-  uint64 commitindex = 3;
+  int64 commitindex = 3;
   uint64 currentterm = 4;
-  uint64 previousterm = 5;
+  int64 previousterm = 5;
 }
 
 message AppendEntriesResponse {

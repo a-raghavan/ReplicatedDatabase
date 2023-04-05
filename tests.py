@@ -96,18 +96,30 @@ class ServerProcess:
         except OSError:
             return False
 
-    def putData(self, key, value):
-        with grpc.insecure_channel(self.base_url) as channel:
-            stub = database_pb2_grpc.DatabaseStub(channel)
-            return stub.Put(database_pb2.PutRequest(key= key, value= value))
+    def putData(self, key, value, retry):
+        rcount = 0
+        while(retry> rcount):
+            try:
+                print(self.base_url)
+                with grpc.insecure_channel(self.base_url) as channel:
+                    stub = database_pb2_grpc.DatabaseStub(channel)
+                    return stub.Put(database_pb2.PutRequest(key= key, value= value),timeout=10)
+            except Exception as e:
+                    print(e)
+                    print("retrying putData")
+                    rcount+=1
     
-    def getData(self, key):
-        with grpc.insecure_channel(self.base_url) as channel:
-            stub = database_pb2_grpc.DatabaseStub(channel)
-            return stub.Get(database_pb2.GetRequest(key= key))
-
-
-
+    def getData(self, key, retry):
+        rcount = 0
+        while(retry> rcount):
+            try:
+                with grpc.insecure_channel(self.base_url) as channel:
+                    stub = database_pb2_grpc.DatabaseStub(channel)
+                    return stub.Get(database_pb2.GetRequest(key= key),timeout=10)
+            except Exception as e:
+                    print(e)
+                    print("retrying getData")
+                    rcount+=1
 
 class Test1AppendEntries(unittest.TestCase):
     def setUp(self):
@@ -132,8 +144,8 @@ class Test1AppendEntries(unittest.TestCase):
         self.alive()
 
     def test_simple_appentEntries_request(self):
-        self.assertTrue(self.nodes[0].putData("akshay","awesome").errormsg =="")
-        val =self.nodes[0].getData("akshay").value 
+        self.assertTrue(self.nodes[0].putData("akshay","awesome",2).errormsg =="")
+        val =self.nodes[0].getData("akshay",2).value 
         print("val ::"+ val)
         self.assertTrue(val == "awesome")
 

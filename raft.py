@@ -6,6 +6,8 @@ import raft_pb2
 import threading
 import math
 import random
+import time
+
 
 class ReplicatedLogEntry:
     def __init__(self, key, value):
@@ -58,19 +60,6 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
             else:
                 return raft_pb2.AppendEntriesResponse(success=False, term=myCurrTerm)
       
-            
-        with self.raftmaininstance.logLock:
-            myCommitIdx = self.raftmaininstance.replicatedlog.commitIndex
-            while myCommitIdx < request.commitindex:
-                print("request.commitindex:: " + str(request.commitindex))
-                print("myCommitIdx:: " + str(myCommitIdx))
-                print("length of replicated log::" + str(len(self.raftmaininstance.replicatedlog.log)))
-                print("raft main instance obj :", self.raftmaininstance)
-                self.raftmaininstance.db.Put(
-                    bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].key, 'utf-8'), 
-                    bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].value, 'utf-8'))
-                myCommitIdx += 1
-                self.raftmaininstance.replicatedlog.commitIndex += 1
 
         with self.raftmaininstance.logLock:
             #Need to check request.prevlogindex!=-1 condition is safe
@@ -85,6 +74,19 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                 self.raftmaininstance.replicatedlog.append(ReplicatedLogEntry(request.entries[0].key, request.entries[0].value))
                 print("length of replicated log::" + str(len(self.raftmaininstance.replicatedlog.log)))
                 print("raft main instance obj :", self.raftmaininstance)
+        
+        with self.raftmaininstance.logLock:
+            myCommitIdx = self.raftmaininstance.replicatedlog.commitIndex
+            while myCommitIdx < request.commitindex and myCommitIdx < len(self.raftmaininstance.replicatedlog.log):
+                print("request.commitindex:: " + str(request.commitindex))
+                print("myCommitIdx:: " + str(myCommitIdx))
+                print("length of replicated log::" + str(len(self.raftmaininstance.replicatedlog.log)))
+                print("raft main instance obj :", self.raftmaininstance)
+                self.raftmaininstance.db.Put(
+                    bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].key, 'utf-8'), 
+                    bytearray(self.raftmaininstance.replicatedlog.log[myCommitIdx].value, 'utf-8'))
+                myCommitIdx += 1
+                self.raftmaininstance.replicatedlog.commitIndex += 1
         
         return raft_pb2.AppendEntriesResponse(success=True, term=myCurrTerm)
 
@@ -105,7 +107,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
 class RafrGRPCClient():
     def __init__(self, raftmaininstance):
         self.raftmaininstance = raftmaininstance
-        self.threadpoolexecutor = futures.ThreadPoolExecutor(max_workers=1)
+        self.threadpoolexecutor = futures.ThreadPoolExecutor(max_workers=10)
         self.nextIndices = {k:0 for k in self.raftmaininstance.othernodes}  # move it to appropriate function when candidate becomes leader
         self.RaftGRPCClientLock = threading.Lock()
 
@@ -178,7 +180,7 @@ class RafrGRPCClient():
                 try:
                     print("__appendEntriesThread checkpoint 2")
                     response = stub.AppendEntries(raft_pb2.AppendEntriesRequest(prevlogindex=myFollowerNextIdx-1, previousterm=prevTerm, 
-                                entries= [lgent], commitindex=cmtIdx, currentterm=1), timeout=1)
+                                entries= [lgent], commitindex=cmtIdx, currentterm=1), timeout=3)
                     print("hoi")
                     print("Success Status::"+ str(response.success))
                     print("Response term::"+ str(response.term))
@@ -189,8 +191,12 @@ class RafrGRPCClient():
                         self.nextIndices[followerNodePort] -= 1
                     else:
                         self.nextIndices[followerNodePort] += 1
-
+                        with self.raftmaininstance.logLock:
+                            if self.nextIndices[followerNodePort] < len(self.raftmaininstance.replicatedlog.log):
+                                response.success = False 
+                    
                 except Exception as e:
+                    time.sleep(1)
                     print(e)
                     continue
         print("__appendEntriesThread checkpoint 3")

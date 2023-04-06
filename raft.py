@@ -226,7 +226,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
             with self.raftmaininstance.logLock:
                 if self.raftmaininstance.role == Role.CANDIDATE:
                     self.raftmaininstance.role= Role.FOLLOWER
-                    self.raftmaininstance.electionTimer = random.random()*10+0
+                    self.raftmaininstance.electionTimer = random.random()*10+20
                     self.raftmaininstance.lastContactedTime = datetime.now()
         pass
 
@@ -385,7 +385,7 @@ class RaftMain():
         self.logLock = threading.Lock()
 
         #If we didn't get any append entry for this much time then we will start an election.
-        self.electionTimer = random.random()*10+0
+        self.electionTimer = random.random()*10+20
         self.lastContactedTime = datetime.now()
         self.candidateId = candidateId
 

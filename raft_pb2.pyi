@@ -38,3 +38,23 @@ class LogEntry(_message.Message):
     term: int
     value: str
     def __init__(self, command: _Optional[str] = ..., key: _Optional[str] = ..., value: _Optional[str] = ..., term: _Optional[int] = ...) -> None: ...
+
+class RequestVoteRequest(_message.Message):
+    __slots__ = ["candidateId", "currentterm", "lastLogIndex", "lastLogTerm"]
+    CANDIDATEID_FIELD_NUMBER: _ClassVar[int]
+    CURRENTTERM_FIELD_NUMBER: _ClassVar[int]
+    LASTLOGINDEX_FIELD_NUMBER: _ClassVar[int]
+    LASTLOGTERM_FIELD_NUMBER: _ClassVar[int]
+    candidateId: str
+    currentterm: int
+    lastLogIndex: int
+    lastLogTerm: int
+    def __init__(self, candidateId: _Optional[str] = ..., currentterm: _Optional[int] = ..., lastLogIndex: _Optional[int] = ..., lastLogTerm: _Optional[int] = ...) -> None: ...
+
+class RequestVoteResponse(_message.Message):
+    __slots__ = ["term", "voteGranted"]
+    TERM_FIELD_NUMBER: _ClassVar[int]
+    VOTEGRANTED_FIELD_NUMBER: _ClassVar[int]
+    term: int
+    voteGranted: bool
+    def __init__(self, term: _Optional[int] = ..., voteGranted: bool = ...) -> None: ...

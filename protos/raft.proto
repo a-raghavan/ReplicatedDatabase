@@ -9,7 +9,22 @@ package raft;
 
 service Raft {
   rpc AppendEntries (AppendEntriesRequest) returns (AppendEntriesResponse) {}
+  rpc RequestVotes (RequestVoteRequest) returns (RequestVoteResponse){}
 }
+
+message RequestVoteRequest{
+  string candidateId = 1;
+  uint64 currentterm = 2;
+  int64 lastLogIndex = 3;
+  int64 lastLogTerm = 4;
+}
+
+message RequestVoteResponse{
+  uint64 term = 1;
+  bool voteGranted = 2;
+}
+
+
 
 message LogEntry {
   string command = 1;

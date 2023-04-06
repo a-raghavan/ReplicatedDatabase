@@ -13,12 +13,12 @@ from time import sleep
 otherReplicas = []
 
 class Database(database_pb2_grpc.DatabaseServicer):
-    def __init__(self, raftPort):
+    def __init__(self, raftPort,candidateId):
         # delete folder if exists - Remove after testing
         path ='./{}_db'.format(raftPort)
         shutil.rmtree(path, ignore_errors=True)
         self.db = leveldb.LevelDB(path)
-        self.raftinstance = raft.RaftMain(otherReplicas, self.db, raftPort)
+        self.raftinstance = raft.RaftMain(otherReplicas, self.db, raftPort,candidateId)
 
     def Get(self, request, context):
         print("Get request received at server with key = %s" % (request.key))
@@ -47,10 +47,10 @@ class Database(database_pb2_grpc.DatabaseServicer):
         return database_pb2.PutReply(errormsg="")
         
 
-def serve(port,raftPort):
+def serve(port,raftPort,candidateId):
     # port = '50051'
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    database_pb2_grpc.add_DatabaseServicer_to_server(Database(raftPort), server)
+    database_pb2_grpc.add_DatabaseServicer_to_server(Database(raftPort,candidateId), server)
     server.add_insecure_port('[::]:' + port)
     server.start()
     print("Server started, listening on " + port)
@@ -77,5 +77,6 @@ if __name__ == '__main__':
         #     otherReplicas.append(nodeport)
         if args.raftport != nodeport.split(":")[1]:
             otherReplicas.append(nodeport)
+
     logging.basicConfig()
-    serve(args.serverport, args.raftport)
+    serve(args.serverport, args.raftport,myIP+":"+str(args.raftport))

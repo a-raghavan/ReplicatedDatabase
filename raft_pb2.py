@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nraft.proto\x12\x04raft\"E\n\x08LogEntry\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0b\n\x03key\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t\x12\x0c\n\x04term\x18\x04 \x01(\x04\"\x8d\x01\n\x14\x41ppendEntriesRequest\x12\x14\n\x0cprevlogindex\x18\x01 \x01(\x03\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.raft.LogEntry\x12\x13\n\x0b\x63ommitindex\x18\x03 \x01(\x03\x12\x13\n\x0b\x63urrentterm\x18\x04 \x01(\x04\x12\x14\n\x0cpreviousterm\x18\x05 \x01(\x03\"6\n\x15\x41ppendEntriesResponse\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x0f\n\x07success\x18\x02 \x01(\x08\x32R\n\x04Raft\x12J\n\rAppendEntries\x12\x1a.raft.AppendEntriesRequest\x1a\x1b.raft.AppendEntriesResponse\"\x00\x42*\n\x15io.grpc.examples.raftB\tRaftProtoP\x01\xa2\x02\x03HLWb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nraft.proto\x12\x04raft\"i\n\x12RequestVoteRequest\x12\x13\n\x0b\x63\x61ndidateId\x18\x01 \x01(\t\x12\x13\n\x0b\x63urrentterm\x18\x02 \x01(\x04\x12\x14\n\x0clastLogIndex\x18\x03 \x01(\x03\x12\x13\n\x0blastLogTerm\x18\x04 \x01(\x03\"8\n\x13RequestVoteResponse\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x13\n\x0bvoteGranted\x18\x02 \x01(\x08\"E\n\x08LogEntry\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0b\n\x03key\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t\x12\x0c\n\x04term\x18\x04 \x01(\x04\"\x8d\x01\n\x14\x41ppendEntriesRequest\x12\x14\n\x0cprevlogindex\x18\x01 \x01(\x03\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.raft.LogEntry\x12\x13\n\x0b\x63ommitindex\x18\x03 \x01(\x03\x12\x13\n\x0b\x63urrentterm\x18\x04 \x01(\x04\x12\x14\n\x0cpreviousterm\x18\x05 \x01(\x03\"6\n\x15\x41ppendEntriesResponse\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x0f\n\x07success\x18\x02 \x01(\x08\x32\x99\x01\n\x04Raft\x12J\n\rAppendEntries\x12\x1a.raft.AppendEntriesRequest\x1a\x1b.raft.AppendEntriesResponse\"\x00\x12\x45\n\x0cRequestVotes\x12\x18.raft.RequestVoteRequest\x1a\x19.raft.RequestVoteResponse\"\x00\x42*\n\x15io.grpc.examples.raftB\tRaftProtoP\x01\xa2\x02\x03HLWb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'raft_pb2', globals())
@@ -21,12 +21,16 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'\n\025io.grpc.examples.raftB\tRaftProtoP\001\242\002\003HLW'
-  _LOGENTRY._serialized_start=20
-  _LOGENTRY._serialized_end=89
-  _APPENDENTRIESREQUEST._serialized_start=92
-  _APPENDENTRIESREQUEST._serialized_end=233
-  _APPENDENTRIESRESPONSE._serialized_start=235
-  _APPENDENTRIESRESPONSE._serialized_end=289
-  _RAFT._serialized_start=291
-  _RAFT._serialized_end=373
+  _REQUESTVOTEREQUEST._serialized_start=20
+  _REQUESTVOTEREQUEST._serialized_end=125
+  _REQUESTVOTERESPONSE._serialized_start=127
+  _REQUESTVOTERESPONSE._serialized_end=183
+  _LOGENTRY._serialized_start=185
+  _LOGENTRY._serialized_end=254
+  _APPENDENTRIESREQUEST._serialized_start=257
+  _APPENDENTRIESREQUEST._serialized_end=398
+  _APPENDENTRIESRESPONSE._serialized_start=400
+  _APPENDENTRIESRESPONSE._serialized_end=454
+  _RAFT._serialized_start=457
+  _RAFT._serialized_end=610
 # @@protoc_insertion_point(module_scope)

@@ -13,7 +13,7 @@ from enum import Enum
 from datetime import datetime
 
 
-class Role(enum):
+class Role(Enum):
     LEADER = 1
     CANDIDATE = 2
     FOLLOWER = 3
@@ -134,21 +134,21 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
         with self.raftmaininstance.logLock:
             myCurrentTerm = self.raftmaininstance.currentTerm
             if request.currentterm >= myCurrentTerm:
-                self.raftmaininstance.currentTerm  = request.currentTerm
+                self.raftmaininstance.currentTerm  = request.currentterm
                 if self.raftmaininstance.role == Role.LEADER or self.raftmaininstance.role == Role.FOLLOWER :
                     self.raftmaininstance.role == Role.FOLLOWER
-                    votedFor = self.dbGetKey('votedFor')
-                    votedTerm = self.dbGetKey('votedTerm')
+                    votedFor = self.dbGetKey('votedFor').decode() if self.dbGetKey('votedFor') != None else -1
+                    votedTerm = int(self.dbGetKey('votedTerm').decode()) if self.dbGetKey('votedTerm') != None else -1
                     lastLogIndex = self.raftmaininstance.replicatedlog.processedIndex
-                    lastLog = self.raftmaininstance.replicatedlog.log[lastLogIndex]
+                    lastLog = self.raftmaininstance.replicatedlog.log[lastLogIndex] if lastLogIndex != -1 else None
                     if((votedTerm == None or votedTerm < request.currentterm ) and 
-                       (lastLog.term < request.lastLogTerm or (lastLog.term == request.lastLogTerm and lastLogIndex<=request.lastLogIndex))):
+                       (lastLog == None or (lastLog.term < request.lastLogTerm or (lastLog.term == request.lastLogTerm and lastLogIndex<=request.lastLogIndex)))):
                         self.raftmaininstance.db.Put(
                             bytearray('votedFor', 'utf-8'), 
                             bytearray(request.candidateId, 'utf-8'))
                         self.raftmaininstance.db.Put(
                             bytearray('votedTerm', 'utf-8'), 
-                            bytearray(request.currentTerm, 'utf-8'))
+                            bytearray(str(request.currentterm), 'utf-8'))
                         return raft_pb2.RequestVoteResponse(voteGranted=True,term = self.raftmaininstance.currentTerm)
                     else:
                         return raft_pb2.RequestVoteResponse(voteGranted=False,term = self.raftmaininstance.currentTerm)
@@ -165,7 +165,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
 
 
 
-    def sendRequestVotes(self,followerNodePort,requestVoteInput):
+    def __sendRequestVotes(self,followerNodePort,requestVoteInput):
         count = 10
         while(count>0):
             try:
@@ -196,35 +196,38 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                             bytearray(candidateId, 'utf-8'))
                     self.raftmaininstance.db.Put(
                         bytearray('votedTerm', 'utf-8'), 
-                        bytearray(currentterm, 'utf-8'))
-                    
+                        bytearray(str(currentterm), 'utf-8'))
 
-                   
-                    
-                    
                     lastLogIndex = self.raftmaininstance.replicatedlog.processedIndex
-                    lastLogTerm = self.raftmaininstance.replicatedlog.log[lastLogIndex].term
-                    requestVoteInput = raft_pb2.RequestVoteRequest(candidateId,currentterm,lastLogIndex, lastLogTerm)
+                    lastLogTerm = self.raftmaininstance.replicatedlog.log[lastLogIndex].term if lastLogIndex != -1 else -1
+                    requestVoteInput = raft_pb2.RequestVoteRequest(candidateId=candidateId, currentterm=currentterm, lastLogIndex=lastLogIndex, lastLogTerm=lastLogTerm)
                     candidateFlag = True
 
             if candidateFlag :
+                print("broadcasting request vote")
                 requestVoteThreads = [self.requestVotesthreadpool.submit(self.__sendRequestVotes,followerNodePort = nodePort, requestVoteInput =requestVoteInput ) for nodePort in self.raftmaininstance.othernodes]
                 majority = math.ceil(len(self.raftmaininstance.othernodes)/2)
                 for fidx in range(len(self.raftmaininstance.othernodes)):
                     out = requestVoteThreads[fidx].result() # always returns True?
-                    if(out.voteGranted == True):
+                    if(out != None and out.voteGranted == True):
                         majority = majority-1
                     print("Got result from Request Vote RPC Server:: "+ str(out))
                     if(majority == 0):
+                        print("Elected as Leader")
                         with self.raftmaininstance.logLock:
                             self.raftmaininstance.role = Role.LEADER
                             nextIndex = self.raftmaininstance.replicatedlog.processedIndex+1
-                            self.raftmaininstance.client.nextIndices = {k: nextIndex for k in self.raftmaininstance.othernodes}
+                            self.raftmaininstance.grpcClient.nextIndices = {k: nextIndex for k in self.raftmaininstance.othernodes}
                             
                             #start heart beats
-                            _heartBeatThread = threading.Thread(target=self.raftmaininstance.grpcClient.__grpcClientHeartBeatThread, args=[random.randint(10000,20000)])
+                            _heartBeatThread = threading.Thread(target=self.raftmaininstance.grpcClient.grpcClientHeartBeatThread, args=[random.randint(10000,20000)])
                             _heartBeatThread.start()
-                    
+                        break
+            with self.raftmaininstance.logLock:
+                if self.raftmaininstance.role == Role.CANDIDATE:
+                    self.raftmaininstance.role= Role.FOLLOWER
+                    self.raftmaininstance.electionTimer = random.random()*10+0
+                    self.raftmaininstance.lastContactedTime = datetime.now()
         pass
 
 
@@ -259,7 +262,7 @@ class RafrGRPCClient():
 
     def createGRPCClientThread(self):
         _appendEntriesThread = threading.Thread(target=self.__grpcClientThread, args=[random.randint(10000,20000)])
-        _heartBeatThread = threading.Thread(target=self.__grpcClientHeartBeatThread, args=[random.randint(10000,20000)])
+        _heartBeatThread = threading.Thread(target=self.grpcClientHeartBeatThread, args=[random.randint(10000,20000)])
         _appendEntriesThread.start()
         _heartBeatThread.start()
         #_thread.join()
@@ -304,8 +307,8 @@ class RafrGRPCClient():
                     self.raftmaininstance.db.Put(bytearray(self.raftmaininstance.replicatedlog.log[cmtIdx].key, 'utf-8'), bytearray(self.raftmaininstance.replicatedlog.log[cmtIdx].value, 'utf-8'))
                     self.raftmaininstance.replicatedlog.commitIndex += 1
 
-    def __grpcClientHeartBeatThread(self, idx):
-        print("__grpcClientHeartBeatThread idx", idx)
+    def grpcClientHeartBeatThread(self, idx):
+        print("grpcClientHeartBeatThread idx", idx)
         with self.raftmaininstance.logLock:
             role = self.raftmaininstance.role
             if role == Role.LEADER:
@@ -382,20 +385,15 @@ class RaftMain():
         self.logLock = threading.Lock()
 
         #If we didn't get any append entry for this much time then we will start an election.
-        self.electionTimer = random.random()*10+20
+        self.electionTimer = random.random()*10+0
         self.lastContactedTime = datetime.now()
         self.candidateId = candidateId
 
         # Creating client and Server threads
-        self.grpcServer = RaftGRPCServer(self,raftPort)
-        self.grpcServer.createGRPCServerThread()
         self.grpcClient = RafrGRPCClient(self)
         self.grpcClient.createGRPCClientThread()
-        self.role = Role.LEADER if(raftPort == "30001") else Role.Follower
-
-
-
-        
+        self.grpcServer = RaftGRPCServer(self,raftPort)
+        self.grpcServer.createGRPCServerThread()
         # TODO create heartbeat thread if state = leader
     
     def addCommandToReplicatedLog(self, entry):

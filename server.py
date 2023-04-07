@@ -33,18 +33,25 @@ class Database(database_pb2_grpc.DatabaseServicer):
         #self.db.Put(bytearray(request.key, 'utf-8'), bytearray(request.value, 'utf-8'))
         #return database_pb2.PutReply(errormsg="")
         print("Put request from client ::  key :"+ request.key +" val:"+ request.value)
-        retIndex = self.raftinstance.addCommandToReplicatedLog(raft.ReplicatedLogEntry(request.key, request.value))
-        # polling
-        # while self.raftinstance.commitIndex < retIndex:
-        #   pass
-        # Get result from raft module, return as GRPC response back to client
-        print("returnIndex for current request :: "+ str(retIndex))
-        print("raftInstanceCoomitIndex:: "+ str(self.raftinstance.getCommitIndex()))
-        while self.raftinstance.getCommitIndex() <= retIndex:
-            sleep(1)
-        print("replicated log len in server.py", len(self.raftinstance.replicatedlog.log))
-        print("Done with PUT Command Successfully")
-        return database_pb2.PutReply(errormsg="")
+        if self.raftinstance.role == raft.Role.LEADER:
+            retIndex = self.raftinstance.addCommandToReplicatedLog(raft.ReplicatedLogEntry(request.key, request.value))
+            # polling
+            # while self.raftinstance.commitIndex < retIndex:
+            #   pass
+            # Get result from raft module, return as GRPC response back to client
+            print("returnIndex for current request :: "+ str(retIndex))
+            print("raftInstanceCoomitIndex:: "+ str(self.raftinstance.getCommitIndex()))
+            while self.raftinstance.getCommitIndex() <= retIndex:
+                if self.raftinstance.role != raft.Role.LEADER:
+                    return database_pb2.PutReply(errormsg="Contact {}".format(self.raftinstance.LeaderIP))
+                sleep(1)
+            print("replicated log len in server.py", len(self.raftinstance.replicatedlog.log))
+            print("Done with PUT Command Successfully")
+            return database_pb2.PutReply(errormsg="")
+        else:
+            return database_pb2.PutReply(errormsg="Contact {}".format(self.raftinstance.LeaderIP))
+
+        
         
 
 def serve(port,raftPort,candidateId):
@@ -77,6 +84,8 @@ if __name__ == '__main__':
         #     otherReplicas.append(nodeport)
         if args.raftport != nodeport.split(":")[1]:
             otherReplicas.append(nodeport)
+        else:
+            myIP=nodeport.split(":")[0]
 
     logging.basicConfig()
     serve(args.serverport, args.raftport,myIP+":"+str(args.raftport))

@@ -61,6 +61,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
             myCurrTerm = self.raftmaininstance.currentTerm
 
         if request.currentterm < myCurrTerm:
+            print("yoooo", "request.currentterm", request.currentterm, "myCurrTerm", myCurrTerm)
             return raft_pb2.AppendEntriesResponse(success=False, term=myCurrTerm)
         
         if len(request.entries) >0:
@@ -72,7 +73,10 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
             print("received heartbeat request")
             return raft_pb2.AppendEntriesResponse(success=True, term=myCurrTerm)
         
+        
+        
         with self.raftmaininstance.logLock:
+            self.raftmaininstance.LeaderIP = context.peer().split(":")[1]+":"+context.peer().split(":")[2]
             loglen = len(self.raftmaininstance.replicatedlog.log)
             if request.prevlogindex <= loglen-1:
                 self.raftmaininstance.replicatedlog.log = self.raftmaininstance.replicatedlog.log[:request.prevlogindex+1]
@@ -105,13 +109,6 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
         
         return raft_pb2.AppendEntriesResponse(success=True, term=myCurrTerm)
     
-    def dbGetKey(self,key):
-        try:
-            value = self.raftmaininstance.db.Get(bytearray(key, 'utf-8'))
-            return value
-        except KeyError:
-            return None
-
 
     def RequestVotes(self,request,context):
         '''
@@ -131,24 +128,29 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                     return back response with voteGranted as false
                     return response(voteGranted= False, term= myCurrentTerm)
         '''
+        print([request])
         with self.raftmaininstance.logLock:
             myCurrentTerm = self.raftmaininstance.currentTerm
             if request.currentterm >= myCurrentTerm:
                 self.raftmaininstance.currentTerm  = request.currentterm
                 if self.raftmaininstance.role == Role.LEADER or self.raftmaininstance.role == Role.FOLLOWER :
                     self.raftmaininstance.role == Role.FOLLOWER
-                    votedFor = self.dbGetKey('votedFor').decode() if self.dbGetKey('votedFor') != None else -1
-                    votedTerm = int(self.dbGetKey('votedTerm').decode()) if self.dbGetKey('votedTerm') != None else -1
+                    votedFor = self.raftmaininstance.dbGetKey('votedFor').decode() if self.raftmaininstance.dbGetKey('votedFor') != None else -1
+                    votedTerm = int(self.raftmaininstance.dbGetKey('votedTerm').decode()) if self.raftmaininstance.dbGetKey('votedTerm') != None else -1
                     lastLogIndex = self.raftmaininstance.replicatedlog.processedIndex
                     lastLog = self.raftmaininstance.replicatedlog.log[lastLogIndex] if lastLogIndex != -1 else None
                     if((votedTerm == None or votedTerm < request.currentterm ) and 
                        (lastLog == None or (lastLog.term < request.lastLogTerm or (lastLog.term == request.lastLogTerm and lastLogIndex<=request.lastLogIndex)))):
+                        print("Granting Vote to::", request.candidateId)
+                        print("voted Term::", request.currentterm)
                         self.raftmaininstance.db.Put(
                             bytearray('votedFor', 'utf-8'), 
                             bytearray(request.candidateId, 'utf-8'))
                         self.raftmaininstance.db.Put(
                             bytearray('votedTerm', 'utf-8'), 
                             bytearray(str(request.currentterm), 'utf-8'))
+                        self.raftmaininstance.electionTimer = random.random()*10+20
+                        self.raftmaininstance.lastContactedTime = datetime.now()
                         return raft_pb2.RequestVoteResponse(voteGranted=True,term = self.raftmaininstance.currentTerm)
                     else:
                         return raft_pb2.RequestVoteResponse(voteGranted=False,term = self.raftmaininstance.currentTerm)
@@ -188,6 +190,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                 if (self.raftmaininstance.role == Role.FOLLOWER  and (difference_seconds > self.raftmaininstance.electionTimer)):
                     self.raftmaininstance.role = Role.CANDIDATE
                     self.raftmaininstance.currentTerm = self.raftmaininstance.currentTerm+1
+                    print("Candidate Thread self.raftmaininstance.currentTerm", self.raftmaininstance.currentTerm)
                     candidateId = self.raftmaininstance.candidateId
                     currentterm=self.raftmaininstance.currentTerm
                     #self voting
@@ -328,7 +331,7 @@ class RafrGRPCClient():
         # if success, return True
         # elif timeout : retry
         # elif failure : decrement self.nextIndices[followerNodePort] and retry
-
+        print("__appendEntriesThread","isHeartBeat",isHeartBeat)
         response = raft_pb2.AppendEntriesResponse(term=1, success=False)
         while ( isHeartBeat or (not response.success)): #need to change condition will fail if myFollowerNextIdx was 0 and it accepted and current idx  =10
             try:
@@ -339,9 +342,11 @@ class RafrGRPCClient():
                     entry = self.raftmaininstance.replicatedlog.log[myFollowerNextIdx] if not isHeartBeat else None
                     cmtIdx =  self.raftmaininstance.replicatedlog.commitIndex
                     prevTerm = self.raftmaininstance.replicatedlog.log[myFollowerNextIdx-1].term if myFollowerNextIdx != 0 and not isHeartBeat else -1
+                    myCurrTerm = self.raftmaininstance.currentTerm
                 prevlogidx = myFollowerNextIdx-1 if not isHeartBeat else -1
             except Exception as e:
-                print(prevTerm,"         ", entry,"       ",myFollowerNextIdx,"    ",e)
+                #print(prevTerm,"         ", entry,"       ",myFollowerNextIdx,"    ",e)
+                print(e)
                 continue
 
             with grpc.insecure_channel(followerNodePort) as channel:
@@ -352,13 +357,18 @@ class RafrGRPCClient():
                     if(isHeartBeat):
                         time.sleep(5)
                     response = stub.AppendEntries(raft_pb2.AppendEntriesRequest(prevlogindex=prevlogidx, previousterm=prevTerm, 
-                                entries= lgent, commitindex=cmtIdx, currentterm=1), timeout=1)
+                                entries= lgent, commitindex=cmtIdx, currentterm= myCurrTerm), timeout=1)
                     #print("followerNodePort", followerNodePort, "response.success", response.success,"response.term", response.term, "isHeartBeat", isHeartBeat)
                     with self.raftmaininstance.logLock:
-                        if self.raftmaininstance.role != Role.LEADER and isHeartBeat:
-                            isHeartBeat = False
                         if  not response.success:
-                            if not isHeartBeat:
+                            print("followerNodePort", followerNodePort ,"self.raftmaininstance.currentTerm",self.raftmaininstance.currentTerm ,"response.term", response.term)
+                            if response.term > self.raftmaininstance.currentTerm:    
+                                self.raftmaininstance.role = Role.FOLLOWER
+                                self.raftmaininstance.LeaderIP= ""
+                                isHeartBeat = False
+                                print("Changing Leader to Follower and shutting down active client threads")
+                                break
+                            elif not isHeartBeat:
                                 self.nextIndices[followerNodePort] -= 1
                         else:
                             if not isHeartBeat:
@@ -378,11 +388,13 @@ class RaftMain():
         self.replicatedlog = ReplicatedLog()
         from copy import deepcopy
         self.othernodes = deepcopy(othernodes)
-        self.currentTerm = 1
-        self.db = leveldbinstance       
+        self.db = leveldbinstance  
+        self.currentTerm = int(self.dbGetKey('votedTerm').decode()) if self.dbGetKey('votedTerm') != None else 1
+        print(self.currentTerm)
         self.role = Role.LEADER if(raftPort == "30001") else Role.FOLLOWER
         print("role", self.role)
         self.logLock = threading.Lock()
+        self.LeaderIP= ""
 
         #If we didn't get any append entry for this much time then we will start an election.
         self.electionTimer = random.random()*10+20
@@ -410,4 +422,12 @@ class RaftMain():
         with self.logLock:
             retval = self.replicatedlog.commitIndex
         return retval
+    
+    def dbGetKey(self,key):
+        try:
+            value = self.db.Get(bytearray(key, 'utf-8'))
+            return value
+        except KeyError:
+            return None
+
 

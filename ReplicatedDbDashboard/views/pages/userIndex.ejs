@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head'); %>
+</head>
+<body class="container">
+
+<header>
+  <%- include('../partials/header'); %>
+</header>
+
+<main>
+  <div class="jumbotron">
+    <h3>User Data</h3>
+    
+     <% 
+        var date= new Date();
+        for(var i = 0; i < userData.length; i++) {
+            if(userData[i].latest_login_date.toDateString() == date.toDateString())
+                liveUsers+=1;
+            if(userData[i].number_of_unique_devices > 1)
+                multipleDeviceUser+=1;
+     }%>
+
+    <div class="row"> 
+        <div class="col-sm-4"><b>Total users present</b> : <i><%= userData.length %></i> </div>
+        <div class="col-sm-4"><b>Today's active users</b> : <i><%=liveUsers %></i>  </div>
+        <div class="col-sm-4"><b>Users with multiple devices</b> : <i><%=multipleDeviceUser %></i>  </div>
+    </div>
+    <br>
+    <table style="table-layout:fixed;word-wrap:break-word;border:1px solid black;margin-left:auto;margin-right:auto;">
+        <tr>
+          <th style="width:20%;border:1px solid black;text-align: center;"> user_id </th>
+          <th style="width:10%;border:1px solid black;text-align: center;"> number_of_unique_ips </th>
+          <th style="width:10%;border:1px solid black;text-align: center;"> number_of_unique_devices </th> 
+          <th style="width:10%;border:1px solid black;text-align: center;"> latest_login_date </th>
+        </tr>
+        <% for (var i = 0; i < userData.length; i++) { %>
+            <tr>
+              <td style="width:20%;border:1px solid black;text-align: center;"><%= userData[i].user_id %></td>
+              <td style="width:10%;border:1px solid black;text-align: center;"><%= userData[i].number_of_unique_ips %></td>
+              <td style="width:10%;border:1px solid black;text-align: center;"><%= userData[i].number_of_unique_devices %></td>
+              <td style="width:10%;border:1px solid black;text-align: center;"><%= userData[i].latest_login_date.toDateString() %></td>
+            </tr>    
+       <% } %>
+    </table>
+  </div>
+</main>
+
+<footer>
+  <%- include('../partials/footer'); %>
+</footer>
+
+</body>
+</html>

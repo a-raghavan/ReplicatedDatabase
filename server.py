@@ -3,6 +3,7 @@ import logging
 
 import grpc
 import database_pb2
+from database_pb2 import KVpair
 import database_pb2_grpc
 import leveldb
 import shutil
@@ -50,6 +51,18 @@ class Database(database_pb2_grpc.DatabaseServicer):
             return database_pb2.PutReply(errormsg="")
         else:
             return database_pb2.PutReply(errormsg="Contact {}".format(self.raftinstance.LeaderIP))
+
+    def GetAllKeys(self, request, context):
+        print("GetAllKeys request received ")
+        result = []
+        try:
+            for key, value in self.db.RangeIter(include_value=True):
+                lol = database_pb2.KVpair(key=key.decode(), value=value.decode())
+                result.append(lol)
+        except Exception as e:
+            print(e)
+            return database_pb2.GetAllKeysReply(errormsg=str(e), KVpairs=[])
+        return database_pb2.GetAllKeysReply(errormsg="", KVpairs=result)
 
         
         

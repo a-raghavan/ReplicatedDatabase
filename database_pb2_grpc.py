@@ -3,6 +3,7 @@
 import grpc
 
 import database_pb2 as database__pb2
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class DatabaseStub(object):
@@ -24,6 +25,11 @@ class DatabaseStub(object):
                 request_serializer=database__pb2.PutRequest.SerializeToString,
                 response_deserializer=database__pb2.PutReply.FromString,
                 )
+        self.GetAllKeys = channel.unary_unary(
+                '/database.Database/GetAllKeys',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=database__pb2.GetAllKeysReply.FromString,
+                )
 
 
 class DatabaseServicer(object):
@@ -41,6 +47,12 @@ class DatabaseServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetAllKeys(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DatabaseServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -53,6 +65,11 @@ def add_DatabaseServicer_to_server(servicer, server):
                     servicer.Put,
                     request_deserializer=database__pb2.PutRequest.FromString,
                     response_serializer=database__pb2.PutReply.SerializeToString,
+            ),
+            'GetAllKeys': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAllKeys,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=database__pb2.GetAllKeysReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -95,5 +112,22 @@ class Database(object):
         return grpc.experimental.unary_unary(request, target, '/database.Database/Put',
             database__pb2.PutRequest.SerializeToString,
             database__pb2.PutReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetAllKeys(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/database.Database/GetAllKeys',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            database__pb2.GetAllKeysReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
 option java_multiple_files = true;
 option java_package = "io.grpc.examples.leveldb";
 option java_outer_classname = "LevelDBProto";
@@ -12,6 +13,8 @@ service Database {
   rpc Get (GetRequest) returns (GetReply) {}
 
   rpc Put (PutRequest) returns (PutReply) {}
+
+  rpc GetAllKeys (google.protobuf.Empty) returns (GetAllKeysReply) {}
 }
 
 message GetRequest {
@@ -30,4 +33,14 @@ message PutRequest {
 
 message PutReply {
   string errormsg = 1;
+}
+
+message KVpair{
+  string key = 1;
+  string value = 2;
+}
+
+message GetAllKeysReply {
+  string errormsg = 1;
+  repeated KVpair KVpairs = 2;
 }

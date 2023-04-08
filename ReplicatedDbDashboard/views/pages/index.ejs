@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head'); %>
+</head>
+<body class="container">
+
+<header>
+  <%- include('../partials/header'); %>
+</header>
+
+<main>
+  <div class="jumbotron">
+    <h3>Report</h3>
+    <p>Welcome to Replicated Database dashboard</p>
+
+    <div class="container">
+      <div class="row">
+        <%for (const [key, value] of Object.entries(data)) {%>
+          <div class="col-sm">
+            <%if(value['KVpairs'].length >0) { %>
+              <div class="card">
+                <h6 class="card-header">Database @<%= key %></h6>
+                <div class="card-body">
+                  <h6 class="card-subtitle mb-2 text-muted">Status:: Healthy</h6>
+                  <table style="table-layout:fixed;word-wrap:break-word;border:1px solid black;margin-left:auto;margin-right:auto;">
+                    <tr>
+                      <th style="width:10%;border:1px solid black;text-align: center;"> key </th>
+                      <th style="width:10%;border:1px solid black;text-align: center;"> value </th>
+                    </tr>
+                    <% for (var i = 0; i < value['KVpairs'].length; i++) { %>
+                        <tr>
+                          <td style="width:10%;border:1px solid black;text-align: center;"><%= value['KVpairs'][i].key %></td>
+                          <td style="width:10%;border:1px solid black;text-align: center;"><%= value['KVpairs'][i].value  %></td>
+                        </tr>    
+                  <% } %>
+                  </table>
+
+                  <br>
+                  <br>
+                  <h6 class="card-subtitle mb-2 ">Want to Submit a Put Request?</h6>
+                  <form action="/submitPutRequest" method="post">
+                    <div class="form-group">
+                      <label for="IPField">LevelDB IP</label>
+                      <input type="text" class="form-control" id="IPField" name="ipaddr" value= "<%= key %>">
+                    </div>
+                    <div class="form-group">
+                      <label for="KeyField">LevelDB Key</label>
+                      <input type="text" class="form-control" id="KeyField" name="key" placeholder="Enter Key">
+                    </div>
+                    <div class="form-group">
+                      <label for="ValueField">LevelDB Value</label>
+                      <input type="text" class="form-control" id="ValueField" name="value" placeholder="Enter Value">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                  </form>
+                </div>
+              </div>
+            <%}else{%>
+              <div class="card">
+                <h6 class="card-header">Database @<%= key %></h6>
+                <div class="card-body">
+                  <h6 class="card-subtitle mb-2 text-muted">Status:: Un-healthy</h6>
+                  <% key %> Server looks to be down at the moment.
+                </div>
+              </div>
+            <%}%>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+
+  </div>
+</main>
+
+<footer>
+  <%- include('../partials/footer'); %>
+</footer>
+
+</body>
+</html>

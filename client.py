@@ -2,6 +2,7 @@ import logging
 import grpc
 import database_pb2
 import database_pb2_grpc
+from google.protobuf import empty_pb2
 
 
 def run():
@@ -11,6 +12,8 @@ def run():
         print(response.errormsg)
         response = stub.Get(database_pb2.GetRequest(key='akshay'))
         print(response.value)
+        response = stub.GetAllKeys(empty_pb2.Empty())
+        print(response)
         #response = stub.Get(database_pb2.GetRequest(key='ll'))
         #print(response.errormsg)
 

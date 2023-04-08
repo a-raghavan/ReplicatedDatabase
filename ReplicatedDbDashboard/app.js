@@ -37,12 +37,10 @@ app.get('/', async function (req, res) {
         receiveGrpcData()
         console.log(grpcdata)
     }
-    //console.log(grpcdata)
     res.render('pages/index', {data: grpcdata});
 });
 
 app.post('/submitPutRequest', function(req, res, next){
-    // req.body object has your form values
     grpcPutRequest(req.body.ipaddr,req.body.key,req.body.value)
     res.render('pages/index', {data: grpcdata});
  });
@@ -53,13 +51,12 @@ app.set('port', process.env.PORT || 8000);
 
 var server = app.listen(app.get('port'),async function () {
     console.log('server up and running' + server.address().port);
-    //Calling Aws sqs queue every 1min
-    setUpGrpcsClient()
+    setUpGrpcClient()
     setInterval(receiveGrpcData, 10000);
 });
 
 
-function setUpGrpcsClient(){
+function setUpGrpcClient(){
     for(data in appSettings){
         grpcClients.push(new database_proto.Database(appSettings[data], grpc.credentials.createInsecure()))
     }
@@ -72,7 +69,6 @@ function receiveGrpcData() {
         promises.push(
         new Promise((resolve, reject) => grpcClients[data].GetAllKeys({}, function(err, response) {
             if(err) {
-              //console.log("Got Error")
               resolve({"KVpairs": [], errormsg: "Server down"})
             }
             resolve(response)        
@@ -85,7 +81,6 @@ function receiveGrpcData() {
             grpcdata[appSettings[data]]=values[data]
         }
     });
-    //console.log(grpcdata)
 
 } 
 

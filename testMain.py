@@ -6,7 +6,7 @@ import shutil
 
 import json
 
-n = 5
+n = 3
 
 sp_base = 50001
 rp_base = 30001
@@ -30,7 +30,7 @@ for file in files_to_delete:
 
 # formatted_str = json_str[1:-1]
 
-print(formatted_str)
+#print(formatted_str)
 
 
 for i in range(n):

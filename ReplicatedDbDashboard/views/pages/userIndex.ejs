@@ -9,41 +9,54 @@
   <%- include('../partials/header'); %>
 </header>
 
-<main>
+<main style="opacity: 1">
   <div class="jumbotron">
-    <h3>User Data</h3>
-    
-     <% 
-        var date= new Date();
-        for(var i = 0; i < userData.length; i++) {
-            if(userData[i].latest_login_date.toDateString() == date.toDateString())
-                liveUsers+=1;
-            if(userData[i].number_of_unique_devices > 1)
-                multipleDeviceUser+=1;
-     }%>
+    <h3>Report</h3>
+    <p>Welcome to Logs dashboard</p>
 
-    <div class="row"> 
-        <div class="col-sm-4"><b>Total users present</b> : <i><%= userData.length %></i> </div>
-        <div class="col-sm-4"><b>Today's active users</b> : <i><%=liveUsers %></i>  </div>
-        <div class="col-sm-4"><b>Users with multiple devices</b> : <i><%=multipleDeviceUser %></i>  </div>
+    <div class="container">
+      <div class="row">
+        <%for (const [key, value] of Object.entries(data)) {%>
+          <div class="col-sm">
+            <%if(!value['errormsg']) { %>
+              <div class="card">
+                <h6 class="card-header">Database @<%= key %></h6>
+                <div class="card-body">
+                  <h6 class="card-subtitle mb-2 text-muted">Status:: Healthy</h6>
+                  <h6 class="card-subtitle mb-2 text-muted">Role:: <%= value['role'].split(".")[1]%></h6>
+                  <table style="table-layout:fixed;word-wrap:break-word;border:1px solid black;margin-left:auto;margin-right:auto;">
+                    <tr>
+                      <th style="width:10%;border:1px solid black;text-align: center;"> Cmd </th>
+                      <th style="width:10%;border:1px solid black;text-align: center;"> key </th>
+                      <th style="width:10%;border:1px solid black;text-align: center;"> value </th>
+                      <th style="width:10%;border:1px solid black;text-align: center;"> term </th>
+                    </tr>
+                    <% for (var i = 0; i < value['entries'].length; i++) { %>
+                        <tr>
+                          <td style="width:10%;border:1px solid black;text-align: center;"><%= value['entries'][i].command %></td>
+                          <td style="width:10%;border:1px solid black;text-align: center;"><%= value['entries'][i].key %></td>
+                          <td style="width:10%;border:1px solid black;text-align: center;"><%= value['entries'][i].value  %></td>
+                          <td style="width:10%;border:1px solid black;text-align: center;"><%= value['entries'][i].term  %></td>
+                        </tr>    
+                  <% } %>
+                  </table>
+                </div>
+              </div>
+            <%}else{%>
+              <div class="card">
+                <h6 class="card-header">Database @<%= key %></h6>
+                <div class="card-body">
+                  <h6 class="card-subtitle mb-2 text-muted">Status:: Un-healthy</h6>
+                  <% key %> Server looks to be down at the moment.
+                </div>
+              </div>
+            <%}%>
+          </div>
+        <% } %>
+      </div>
     </div>
-    <br>
-    <table style="table-layout:fixed;word-wrap:break-word;border:1px solid black;margin-left:auto;margin-right:auto;">
-        <tr>
-          <th style="width:20%;border:1px solid black;text-align: center;"> user_id </th>
-          <th style="width:10%;border:1px solid black;text-align: center;"> number_of_unique_ips </th>
-          <th style="width:10%;border:1px solid black;text-align: center;"> number_of_unique_devices </th> 
-          <th style="width:10%;border:1px solid black;text-align: center;"> latest_login_date </th>
-        </tr>
-        <% for (var i = 0; i < userData.length; i++) { %>
-            <tr>
-              <td style="width:20%;border:1px solid black;text-align: center;"><%= userData[i].user_id %></td>
-              <td style="width:10%;border:1px solid black;text-align: center;"><%= userData[i].number_of_unique_ips %></td>
-              <td style="width:10%;border:1px solid black;text-align: center;"><%= userData[i].number_of_unique_devices %></td>
-              <td style="width:10%;border:1px solid black;text-align: center;"><%= userData[i].latest_login_date.toDateString() %></td>
-            </tr>    
-       <% } %>
-    </table>
+
+
   </div>
 </main>
 

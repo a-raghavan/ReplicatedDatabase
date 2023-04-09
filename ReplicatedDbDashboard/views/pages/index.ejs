@@ -9,20 +9,33 @@
   <%- include('../partials/header'); %>
 </header>
 
-<main>
+<main style="opacity: 1">
   <div class="jumbotron">
     <h3>Report</h3>
     <p>Welcome to Replicated Database dashboard</p>
+
+    <% if(errormsg && redirected){ %>
+      <script type="text/javascript">
+        var error = `<%= errormsg %>`;
+        alert(`${error}`);
+      </script>
+    <% } %>
+    <% if(!errormsg && redirected){ %>
+      <script>
+        alert(`Successfully added Key Value Pair`);
+      </script>
+    <% } %>
 
     <div class="container">
       <div class="row">
         <%for (const [key, value] of Object.entries(data)) {%>
           <div class="col-sm">
-            <%if(value['KVpairs'].length >0) { %>
+            <%if(!value['errormsg']) { %>
               <div class="card">
                 <h6 class="card-header">Database @<%= key %></h6>
                 <div class="card-body">
                   <h6 class="card-subtitle mb-2 text-muted">Status:: Healthy</h6>
+                  <h6 class="card-subtitle mb-2 text-muted">Role:: <%= value['role'].split(".")[1]%></h6>
                   <table style="table-layout:fixed;word-wrap:break-word;border:1px solid black;margin-left:auto;margin-right:auto;">
                     <tr>
                       <th style="width:10%;border:1px solid black;text-align: center;"> key </th>

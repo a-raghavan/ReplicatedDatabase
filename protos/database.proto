@@ -40,7 +40,16 @@ message KVpair{
   string value = 2;
 }
 
+message LogEntry {
+  string command = 1;
+  string key = 2;
+  string value = 3;
+  uint64 term = 4;
+}
+
 message GetAllKeysReply {
   string errormsg = 1;
   repeated KVpair KVpairs = 2;
+  string role = 3;
+  repeated LogEntry entries =4;
 }

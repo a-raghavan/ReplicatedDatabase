@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x64\x61tabase.proto\x12\x08\x64\x61tabase\x1a\x1bgoogle/protobuf/empty.proto\"\x19\n\nGetRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\"+\n\x08GetReply\x12\x10\n\x08\x65rrormsg\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"(\n\nPutRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x1c\n\x08PutReply\x12\x10\n\x08\x65rrormsg\x18\x01 \x01(\t\"$\n\x06KVpair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"F\n\x0fGetAllKeysReply\x12\x10\n\x08\x65rrormsg\x18\x01 \x01(\t\x12!\n\x07KVpairs\x18\x02 \x03(\x0b\x32\x10.database.KVpair2\xb3\x01\n\x08\x44\x61tabase\x12\x31\n\x03Get\x12\x14.database.GetRequest\x1a\x12.database.GetReply\"\x00\x12\x31\n\x03Put\x12\x14.database.PutRequest\x1a\x12.database.PutReply\"\x00\x12\x41\n\nGetAllKeys\x12\x16.google.protobuf.Empty\x1a\x19.database.GetAllKeysReply\"\x00\x42\x30\n\x18io.grpc.examples.leveldbB\x0cLevelDBProtoP\x01\xa2\x02\x03HLWb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x64\x61tabase.proto\x12\x08\x64\x61tabase\x1a\x1bgoogle/protobuf/empty.proto\"\x19\n\nGetRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\"+\n\x08GetReply\x12\x10\n\x08\x65rrormsg\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"(\n\nPutRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x1c\n\x08PutReply\x12\x10\n\x08\x65rrormsg\x18\x01 \x01(\t\"$\n\x06KVpair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"E\n\x08LogEntry\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\x12\x0b\n\x03key\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t\x12\x0c\n\x04term\x18\x04 \x01(\x04\"y\n\x0fGetAllKeysReply\x12\x10\n\x08\x65rrormsg\x18\x01 \x01(\t\x12!\n\x07KVpairs\x18\x02 \x03(\x0b\x32\x10.database.KVpair\x12\x0c\n\x04role\x18\x03 \x01(\t\x12#\n\x07\x65ntries\x18\x04 \x03(\x0b\x32\x12.database.LogEntry2\xb3\x01\n\x08\x44\x61tabase\x12\x31\n\x03Get\x12\x14.database.GetRequest\x1a\x12.database.GetReply\"\x00\x12\x31\n\x03Put\x12\x14.database.PutRequest\x1a\x12.database.PutReply\"\x00\x12\x41\n\nGetAllKeys\x12\x16.google.protobuf.Empty\x1a\x19.database.GetAllKeysReply\"\x00\x42\x30\n\x18io.grpc.examples.leveldbB\x0cLevelDBProtoP\x01\xa2\x02\x03HLWb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'database_pb2', globals())
@@ -32,8 +32,10 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _PUTREPLY._serialized_end=199
   _KVPAIR._serialized_start=201
   _KVPAIR._serialized_end=237
-  _GETALLKEYSREPLY._serialized_start=239
-  _GETALLKEYSREPLY._serialized_end=309
-  _DATABASE._serialized_start=312
-  _DATABASE._serialized_end=491
+  _LOGENTRY._serialized_start=239
+  _LOGENTRY._serialized_end=308
+  _GETALLKEYSREPLY._serialized_start=310
+  _GETALLKEYSREPLY._serialized_end=431
+  _DATABASE._serialized_start=434
+  _DATABASE._serialized_end=613
 # @@protoc_insertion_point(module_scope)

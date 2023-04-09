@@ -71,7 +71,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                 print("request.entries.value",  str(request.entries[0].value))
         else:
             print("received heartbeat request")
-            return raft_pb2.AppendEntriesResponse(success=True, term=myCurrTerm)
+            return self.CommitToDB(request)
         
         
         
@@ -93,9 +93,12 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
                 self.raftmaininstance.replicatedlog.processedIndex+=1
                 self.raftmaininstance.replicatedlog.append(ReplicatedLogEntry(request.entries[0].key, request.entries[0].value))
 
+        return self.CommitToDB(request)
         
+    def CommitToDB(self,request):
         with self.raftmaininstance.logLock:
             myCommitIdx = self.raftmaininstance.replicatedlog.commitIndex
+            myCurrTerm = self.raftmaininstance.currentTerm
             print("request.commitindex:: " + str(request.commitindex))
             print("myCommitIdx:: " + str(myCommitIdx))
             print("length of replicated log::" + str(len(self.raftmaininstance.replicatedlog.log)))

@@ -17,7 +17,7 @@ class Database(database_pb2_grpc.DatabaseServicer):
     def __init__(self, raftPort,candidateId):
         # delete folder if exists - Remove after testing
         path ='./{}_db'.format(raftPort)
-        shutil.rmtree(path, ignore_errors=True)
+        #shutil.rmtree(path, ignore_errors=True)
         self.db = leveldb.LevelDB(path)
         self.raftinstance = raft.RaftMain(otherReplicas, self.db, raftPort,candidateId)
 
@@ -57,12 +57,16 @@ class Database(database_pb2_grpc.DatabaseServicer):
         result = []
         try:
             for key, value in self.db.RangeIter(include_value=True):
-                lol = database_pb2.KVpair(key=key.decode(), value=value.decode())
-                result.append(lol)
+                result.append(database_pb2.KVpair(key=key.decode(), value=value.decode()))
         except Exception as e:
             print(e)
-            return database_pb2.GetAllKeysReply(errormsg=str(e), KVpairs=[])
-        return database_pb2.GetAllKeysReply(errormsg="", KVpairs=result)
+            return database_pb2.GetAllKeysReply(errormsg=str(e), KVpairs=[], value = "",role= "", entries =[])
+        
+        role = str(self.raftinstance.role)
+        entries = []
+        for log in self.raftinstance.replicatedlog.log:
+            entries.append(database_pb2.LogEntry(command = log.command, key = log.key, value = log.value, term = log.term))
+        return database_pb2.GetAllKeysReply(errormsg="", KVpairs=result, role= role, entries =entries)
 
         
         

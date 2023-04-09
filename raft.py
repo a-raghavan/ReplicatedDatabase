@@ -171,7 +171,7 @@ class RaftGRPCServer(raft_pb2_grpc.RaftServicer):
 
 
     def __sendRequestVotes(self,followerNodePort,requestVoteInput):
-        count = 10
+        count = 200
         while(count>0):
             try:
                  with grpc.insecure_channel(followerNodePort) as channel:

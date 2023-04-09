@@ -11,6 +11,12 @@ import shutil
 import raft
 from time import sleep
 
+import signal
+import sys
+import json
+from types import SimpleNamespace
+
+count = 0
 otherReplicas = []
 
 class Database(database_pb2_grpc.DatabaseServicer):
@@ -20,6 +26,26 @@ class Database(database_pb2_grpc.DatabaseServicer):
         #shutil.rmtree(path, ignore_errors=True)
         self.db = leveldb.LevelDB(path)
         self.raftinstance = raft.RaftMain(otherReplicas, self.db, raftPort,candidateId)
+        try:
+            rl = self.db.Get(bytearray("replicatedlog", 'utf-8'))
+            print("before log import -", rl.decode())
+            self.raftinstance.replicatedlog = json.loads(rl.decode(), object_hook=lambda d: SimpleNamespace(**d))
+            print("replicated log import -", self.raftinstance.replicatedlog[0])
+
+        except:
+            pass
+        signal.signal(signal.SIGINT, self.saveReplicatedLogAndKill)
+    
+    def saveReplicatedLogAndKill(self, sig, frame):
+        global count
+        if count != 0:
+            sys.exit(0)
+        count = 1
+        print("before json dumps - ", self.raftinstance.replicatedlog)
+        y = json.dumps(self.raftinstance.replicatedlog, cls=RLEncoder)
+        print("replicated log json dump =", y)
+        self.db.Put(bytearray("replicatedlog", 'utf-8'), bytearray(y, 'utf-8'))
+        sys.exit(0) 
 
     def Get(self, request, context):
         print("Get request received at server with key = %s" % (request.key))
@@ -57,7 +83,8 @@ class Database(database_pb2_grpc.DatabaseServicer):
         result = []
         try:
             for key, value in self.db.RangeIter(include_value=True):
-                result.append(database_pb2.KVpair(key=key.decode(), value=value.decode()))
+                if key.decode() != 'replicatedlog' and key.decode() != 'votedFor' and key.decode() != 'votedTerm':
+                    result.append(database_pb2.KVpair(key=key.decode(), value=value.decode()))
         except Exception as e:
             print(e)
             return database_pb2.GetAllKeysReply(errormsg=str(e), KVpairs=[], value = "",role= "", entries =[])
@@ -68,7 +95,11 @@ class Database(database_pb2_grpc.DatabaseServicer):
             entries.append(database_pb2.LogEntry(command = log.command, key = log.key, value = log.value, term = log.term))
         return database_pb2.GetAllKeysReply(errormsg="", KVpairs=result, role= role, entries =entries)
 
-        
+class RLEncoder(json.JSONEncoder):
+    def default(self, obj):
+            ret = obj.__dict__
+            ret['log'] = [x.__dict__ for x in ret['log']]
+            return ret               
         
 
 def serve(port,raftPort,candidateId):

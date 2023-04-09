@@ -45,6 +45,64 @@ app.get('/', async function (req, res) {
     //}
 });
 
+app.get('/getTime', async function (req, res) {
+    var count = req.query.numGets
+    var promises= []
+    var start = Date.now();
+    while(count>0){   
+       promises.push(grpcGetRequestTest("akshay"+count))
+        count-=1
+    }
+    Promise.all(promises).then((values) => {
+        result = {}
+        successRequests = 0
+        failureRequests= 0
+        for(data in values){
+            if(!data.errormsg){
+                successRequests+=1
+            }
+            else{
+                failureRequests+=1
+            }
+        }
+        var end = Date.now();
+        result['successRequests'] = successRequests
+        result['failureRequests'] = failureRequests
+        result['totalOperationTime'] = (end- start)/1000
+        res.json(result)
+
+    });
+    
+});
+
+app.get('/putTime', async function (req, res) {
+    var count = req.query.numPuts
+    var promises= []
+    var start = Date.now();
+    while(count>0){   
+       promises.push(grpcPutRequestTest("akshay"+count, "awesome"+count))
+        count-=1
+    }
+    Promise.all(promises).then((values) => {
+        result = {}
+        successRequests = 0
+        failureRequests= 0
+        for(data in values){
+            if(!data.errormsg){
+                successRequests+=1
+            }
+            else{
+                failureRequests+=1
+            }
+        }
+        var end = Date.now();
+        result['successRequests'] = successRequests
+        result['failureRequests'] = failureRequests
+        result['totalOperationTime'] = (end-start)/1000
+        res.json(result)
+    });
+});
+
 
 app.get('/logs', async function (req, res) {
 
@@ -120,6 +178,29 @@ function grpcPutRequest(ip, key, value) {
         }
     }
 
+} 
+
+function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}
+
+function grpcGetRequestTest(key, value) {
+    return new Promise((resolve, reject) => grpcClients[getRandomInt(appSettings.length)].Get({key: key}, function(err, response){
+        if(err) {
+            resolve({"value": "", errormsg: "Server down"})
+            }
+            resolve(response)        
+    }))
+
+} 
+
+function grpcPutRequestTest(key, value) {
+    return new Promise((resolve, reject) => grpcClients[0].Put({key: key, value: value }, function(err, response){
+        if(err) {
+            resolve({errormsg: "Server down"})
+            }
+            resolve(response)        
+    }))
 } 
 
 

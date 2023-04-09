@@ -151,7 +151,7 @@ function receiveGrpcData() {
         promises.push(
         new Promise((resolve, reject) => grpcClients[data].GetAllKeys({}, function(err, response) {
             if(err) {
-                //console.log(err)
+                console.log(err)
                 resolve({"KVpairs": [], errormsg: "Server down", role: "Unknown", entries: []})
             }
             resolve(response)        
@@ -170,7 +170,7 @@ function grpcPutRequest(ip, key, value) {
             console.log("yoo")
             return new Promise((resolve, reject) => grpcClients[data].Put({key: key, value: value }, function(err, response){
                 if(err) {
-                    //console.log(err)
+                    console.log(err)
                     resolve({"KVpairs": [], errormsg: "Server down"})
                   }
                   resolve(response)        
@@ -204,6 +204,21 @@ function grpcPutRequestTest(key, value) {
 } 
 
 
-
+// function grpcGetRequest(ip, key, value) {
+//     for(data in appSettings){
+//         console.log(appSettings[data])
+//         console.log(ip)
+//         if(appSettings[data] == ip){
+//             console.log("yoo")
+//             return new Promise((resolve, reject) => grpcClients[data].Put({key: key, value: value }, function(err, response){
+//                 if(err) {
+//                     //console.log(err)
+//                     resolve({"KVpairs": [], errormsg: "Server down"})
+//                   }
+//                   resolve(response)        
+//             }))
+//         }
+//     }
+// } 
 
 

@@ -29,3 +29,9 @@ python3 server.py -n 10.10.1.6:30001 10.10.1.6:30002 10.10.1.6:30003 -sp 50003 -
 ```sh
 python3 client.py
 ```
+
+### RUN UX
+cd ReplicatedDatabase/ReplicatedDbDashboard
+npm install
+node app
+![image](https://user-images.githubusercontent.com/23165664/231079397-0abd369d-7d28-467a-823d-a2bd09f52785.png)
